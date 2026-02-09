@@ -1,8 +1,6 @@
 import { Task } from "../types/task";
 
-let tasks: Task[] = [
-  { id: 1, title: "Tarefa mock", completed: false },
-];
+let tasks: Task[] = [];
 
 export class TaskService {
   getAll(): Task[] {
@@ -28,7 +26,10 @@ export class TaskService {
     return task;
   }
 
-  delete(id: number): void {
+  delete(id: number): boolean {
+    const initialLength = tasks.length;
     tasks = tasks.filter((t) => t.id !== id);
+
+    return tasks.length < initialLength;
   }
 }
