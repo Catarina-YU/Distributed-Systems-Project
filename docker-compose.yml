@@ -23,10 +23,11 @@ services:
     ports:
       - "3333:3333"
     environment:
-      - DB_HOST=mysql
-      - DB_USER=root
-      - DB_PASSWORD=root
-      - DB_NAME=tasks
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: tasks
     depends_on:
       - mysql
       - redis
@@ -54,13 +55,31 @@ services:
     container_name: loki
     ports:
       - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  # --- ADICIONADO: O PROMTAIL (O COLETOR DE LOGS) ---
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    user: root
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro # Lê logs do Docker
+      - ./promtail-config.yaml:/etc/promtail/config.yml # Sua config
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
     container_name: grafana
+    ports:
+      - "3001:3000" # Adicionei uma porta caso queira acessar direto, além do Nginx
     environment:
-      - GF_SERVER_ROOT_URL=/grafana/
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      GF_SERVER_ROOT_URL: http://localhost:8080/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
     depends_on:
       - loki
 

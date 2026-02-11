@@ -1,33 +1,41 @@
 import { Request, Response } from "express";
-import { TaskService } from "../services/task.service";
-
-const service = new TaskService();
+import { pool } from "../database";
 
 export class TaskController {
-  getTasks(req: Request, res: Response) {
-    return res.json(service.getAll());
+  async getTasks(req: Request, res: Response) {
+    const [rows] = await pool.query("SELECT * FROM tasks");
+    res.json(rows);
   }
 
-  createTask(req: Request, res: Response) {
+  async createTask(req: Request, res: Response) {
     const { title } = req.body;
-    const task = service.create(title);
-    return res.status(201).json(task);
+
+    const [result]: any = await pool.query(
+      "INSERT INTO tasks (title, completed) VALUES (?, ?)",
+      [title, false]
+    );
+
+    res.json({
+      id: result.insertId,
+      title,
+      completed: false,
+    });
   }
 
-  toggleTask(req: Request, res: Response) {
-    const id = Number(req.params.id);
-    const task = service.toggle(id);
+  async toggleTask(req: Request, res: Response) {
+    const { id } = req.params;
 
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
+    await pool.query(
+      "UPDATE tasks SET completed = !completed WHERE id = ?",
+      [id]
+    );
 
-    return res.json(task);
+    res.sendStatus(204);
   }
 
-  deleteTask(req: Request, res: Response) {
-    const id = Number(req.params.id);
-    service.delete(id);
-    return res.status(204).send();
+  async deleteTask(req: Request, res: Response) {
+    const { id } = req.params;
+    await pool.query("DELETE FROM tasks WHERE id = ?", [id]);
+    res.sendStatus(204);
   }
 }
